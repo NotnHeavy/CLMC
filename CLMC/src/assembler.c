@@ -9,7 +9,8 @@
 // DAT is a bit of a special case. It's not an instruction that gets compiled down, 
 // unlike the rest, it just reserves the next mailbox with an optional value. 
 // Typically this is used with labels.
-static const char instructions[11][4] = {"HLT", "ADD", "SUB", "STA", "DAT", "LDA", "BRA", "BRZ", "BRP", "INP", "OUT"};
+// IPC and OTC are also CLMC-specific. They are not standard.
+static const char instructions[13][4] = {"HLT", "ADD", "SUB", "STA", "DAT", "LDA", "BRA", "BRZ", "BRP", "INP", "OUT", "IPC", "OTC"};
 
 typedef struct
 {
@@ -67,7 +68,7 @@ static int isNumber(const char* number, size_t size)
 		size = strlen(number);
 	for (size_t i = 0; i < size; ++i)
 	{
-		if (!isdigit(number[i]))
+		if (!isdigit((unsigned char)number[i]))
 			return 0;
 	}
 	return 1;
@@ -97,15 +98,15 @@ static lmctoken_t* getNextToken(lmcassembler_t* assembler)
 		{
 			while (inBounds(assembler) && *assembler->codePointer != '\n')
 				++assembler->codePointer;
-			while (inBounds(assembler) && isspace(*assembler->codePointer))
+			while (inBounds(assembler) && isspace((unsigned char)*assembler->codePointer))
 				++assembler->codePointer;
 			continue;
 		}
 
 		// Skip spaces.
-		if (isspace(character) && *assembler->codePointer != '\n')
+		if (isspace((unsigned char)character) && *assembler->codePointer != '\n')
 		{
-			while (inBounds(assembler) && isspace(*assembler->codePointer) && *assembler->codePointer != '\n')
+			while (inBounds(assembler) && isspace((unsigned char)*assembler->codePointer) && *assembler->codePointer != '\n')
 				++assembler->codePointer;
 			continue;
 		}
@@ -121,11 +122,11 @@ static lmctoken_t* getNextToken(lmcassembler_t* assembler)
 		}
 
 		// Identifier or numeric consts.
-		else if (isalnum(character) || character == '-')
+		else if (isalnum((unsigned char)character) || character == '-')
 		{
 			char buffer[LMC_LABEL_SIZE + 1] = { 0 };
 			int index = 0;
-			while (inBounds(assembler) && ((character == '-' && (isdigit(*assembler->codePointer) || *assembler->codePointer == '-')) || isalnum(*assembler->codePointer)) && index < sizeof(buffer) - 1)
+			while (inBounds(assembler) && ((character == '-' && (isdigit((unsigned char)*assembler->codePointer) || *assembler->codePointer == '-')) || isalnum((unsigned char)*assembler->codePointer)) && index < sizeof(buffer) - 1)
 			{
 				buffer[index] = *assembler->codePointer;
 				++index;
@@ -237,6 +238,8 @@ lmccode_t* AssembleLMC(lmcassembler_t* assembler)
 	lmctokens_t addressTokens[] = { IDENTIFIER, NUMERIC };
 	uint8_t index = 0;
 	lmctoken_t* token = getNextToken(assembler);
+	if (token == NULL)
+		return NULL;
 	int16_t* assembly = (int16_t*)malloc(sizeof(int16_t) * LMC_MAILBOX_SIZE);
 
 	size_t labelIndex = 0;
@@ -248,6 +251,7 @@ lmccode_t* AssembleLMC(lmcassembler_t* assembler)
 	memset(labels, 0, sizeof(lmclabel_t) * LMC_MAILBOX_SIZE);
 	memset(labelReferences, 0, sizeof(lmclabelref_t) * LMC_MAILBOX_SIZE);
 	memset(assembly, 0, LMC_MAILBOX_SIZE);
+
 
 	while (token->token != EoF && assembler->errorState[0] == '\0')
 	{
@@ -290,16 +294,16 @@ lmccode_t* AssembleLMC(lmcassembler_t* assembler)
 		char mailbox[5] = { 0 };
 		memset(mailbox, '0', sizeof(mailbox) - 1);
 		if (instruction != 0x04)
-			mailbox[1] = (instruction == 10 ? 9 : instruction) + '0';
+			mailbox[1] = (instruction > 9 ? 9 : instruction) + '0';
 		switch (instruction)
 		{
 		case 0x00: // HLT
 			break;
 		case 0x09: // INP
-			mailbox[3] = '1';
-			break;
 		case 0x0A: // OUT
-			mailbox[3] = '2';
+		case 0x0B: // IPC
+		case 0x0C: // OPC
+			mailbox[3] = (instruction - 0x08) + '0';
 			break;
 		default: // Handles DAT and the other instructions slightly differently.
 		{
@@ -360,9 +364,12 @@ lmccode_t* AssembleLMC(lmcassembler_t* assembler)
 			break;
 		if (verifyToken(assembler, NEWLINE))
 			goto failure;
-		token = getNextToken(assembler);
-		if (token == NULL)
-			goto failure;
+		while (token->token == NEWLINE)
+		{
+			token = getNextToken(assembler);
+			if (token == NULL)
+				goto failure;
+		}
 	}
 
 	// Set memory address for labels.

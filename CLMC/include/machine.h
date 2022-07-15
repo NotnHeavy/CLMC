@@ -6,6 +6,7 @@
 
 typedef enum
 {
+	// Standard instructions
 	HLT,	   // 000
 	ADD,	   // 1xx
 	SUB,	   // 2xx
@@ -16,7 +17,11 @@ typedef enum
 	BRZ,       // 7xx
 	BRP,       // 8xx
 	INP = 901, // 901
-	OUT		   // 902
+	OUT,       // 902
+
+	// Specific to CLMC.
+	IPC,       // 903
+	OTC        // 904
 } opcode_t;
 
 typedef struct

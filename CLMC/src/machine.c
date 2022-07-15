@@ -51,11 +51,12 @@ int ExecuteLMC(lmc_t* machine)
 		machine->ir = machine->ar / 100;
 		machine->ar = machine->ar - machine->ir * 100;
 		if (machine->ir == 0x09)
-			machine->ir = machine->ar == 1 ? INP : OUT;
+			machine->ir = 900 + machine->ar;
 
 		// EXECUTE
 		switch (machine->ir)
 		{
+		// Standard instructions.
 		case HLT:
 			return 0;
 		case ADD:
@@ -90,6 +91,19 @@ int ExecuteLMC(lmc_t* machine)
 			}
 			break;
 		case INP:
+		{
+			char buffer[6] = { 0 }; // -999 to 999, with enough space for \n and \0.
+			fgets(buffer, sizeof(buffer), stdin);
+			buffer[strlen(buffer) - 1] = '\0';
+			machine->accumulator = atoi(buffer);
+			break;
+		}
+		case OUT:
+			printf("%d", machine->accumulator);
+			break;
+
+		// Specific to CLMC.
+		case IPC:
 			machine->accumulator = getchar();
 			if (machine->accumulator != '\n')
 			{
@@ -97,7 +111,7 @@ int ExecuteLMC(lmc_t* machine)
 				while (clear = getchar() != '\n' && clear != EOF) { }
 			}
 			break;
-		case OUT:
+		case OTC:
 			putchar(machine->accumulator);
 			break;
 		}
