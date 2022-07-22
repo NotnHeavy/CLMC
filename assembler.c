@@ -46,13 +46,13 @@ static char isInstruction(const char* const string)
 		return -1;
 	char upper[LMC_LABEL_SIZE + 1] = { 0 };
 	size_t index = 0;
-	strcpy_s(upper, sizeof(upper), string);
+	strncpy(upper, string, sizeof(upper));
 	while (upper[index] != '\0')
 	{
 		upper[index] = toupper(upper[index]);
 		++index;
 	}
-	for (char i = 0; i < sizeof(instructions) / sizeof(instructions[0]); ++i)
+	for (unsigned char i = 0; i < sizeof(instructions) / sizeof(instructions[0]); ++i)
 	{
 		if (strcmp(upper, instructions[i]) == 0)
 			return i;
@@ -116,7 +116,7 @@ static lmctoken_t* getNextToken(lmcassembler_t* assembler)
 		{
 			++assembler->codePointer;
 			token->token = NEWLINE;
-			strcpy_s(token->value, sizeof(token->value), "\n");
+			strncpy(token->value, "\n", sizeof(token->value));
 			assembler->currentToken = token;
 			return token;
 		}
@@ -137,19 +137,19 @@ static lmctoken_t* getNextToken(lmcassembler_t* assembler)
 				token->token = NUMERIC;
 			else
 				token->token = IDENTIFIER;
-			strcpy_s(token->value, sizeof(token->value), buffer);
+			strncpy(token->value, buffer, sizeof(token->value));
 			assembler->currentToken = token;
 			return token;
 		}
 		
 		free(token);
-		sprintf_s(assembler->errorState, sizeof(assembler->errorState), "Unrecognised token '%c'.", character);
+		snprintf(assembler->errorState, sizeof(assembler->errorState), "Unrecognised token '%c'.", character);
 		return NULL;
 	}
 
 	assembler->currentToken = token;
 	token->token = EoF;
-	strcpy_s(token->value, sizeof(token->value), "EOF");
+	strncpy(token->value, "EOF", sizeof(token->value));
 	return token;
 }
 
@@ -160,7 +160,7 @@ static int verifyToken(lmcassembler_t* assembler, lmctokens_t token)
 
 	if (assembler->currentToken->token != token)
 	{
-		sprintf_s(assembler->errorState, sizeof(assembler->errorState), "Unexpected token \"%s\".", assembler->currentToken->value);
+		snprintf(assembler->errorState, sizeof(assembler->errorState), "Unexpected token \"%s\".", assembler->currentToken->value);
 		return 1;
 	}
 	return 0;
@@ -176,7 +176,7 @@ static int verifyTokenList(lmcassembler_t* assembler, lmctokens_t tokens[], size
 		if (assembler->currentToken->token == tokens[i])
 			return 0;
 	}
-	sprintf_s(assembler->errorState, sizeof(assembler->errorState), "Unexpected token \"%s\".", assembler->currentToken->value);
+	snprintf(assembler->errorState, sizeof(assembler->errorState), "Unexpected token \"%s\".", assembler->currentToken->value);
 	return 1;
 }
 
@@ -280,7 +280,7 @@ lmccode_t* AssembleLMC(lmcassembler_t* assembler)
 			// Unrecognised instruction.
 			if (instruction == -1)
 			{
-				sprintf_s(assembler->errorState, sizeof(assembler->errorState), "Unrecognised instruction \"%s\"", opcode);
+				snprintf(assembler->errorState, sizeof(assembler->errorState), "Unrecognised instruction \"%s\"", opcode);
 				goto failure;
 			}
 
@@ -321,7 +321,7 @@ lmccode_t* AssembleLMC(lmcassembler_t* assembler)
 				{
 					if (value < -999 || value > 999)
 					{
-						strcpy_s(assembler->errorState, sizeof(assembler->errorState), "Mailbox values must be within the range -999 to 999.");
+						strncpy(assembler->errorState, "Mailbox values must be within the range -999 to 999.", sizeof(assembler->errorState));
 						goto failure;
 					}
 				}
@@ -329,7 +329,7 @@ lmccode_t* AssembleLMC(lmcassembler_t* assembler)
 				{
 					if (value < 0 || value > 99)
 					{
-						strcpy_s(assembler->errorState, sizeof(assembler->errorState), "Mailbox addresses must be within the range 0 to 99.");
+						strncpy(assembler->errorState, "Mailbox addresses must be within the range 0 to 99.", sizeof(assembler->errorState));
 						goto failure;
 					}
 				}
@@ -355,7 +355,7 @@ lmccode_t* AssembleLMC(lmcassembler_t* assembler)
 		++index;
 		if (index + 1 > LMC_MAILBOX_SIZE)
 		{
-			strcpy_s(assembler->errorState, sizeof(assembler->errorState), "LMC applications can only fit in 100 mailboxes.");
+			strncpy(assembler->errorState, "LMC applications can only fit in 100 mailboxes.", sizeof(assembler->errorState));
 			goto failure;
 		}
 
@@ -389,7 +389,7 @@ lmccode_t* AssembleLMC(lmcassembler_t* assembler)
 			}
 			if (label == NULL)
 			{
-				sprintf_s(assembler->errorState, sizeof(assembler->errorState), "Undefined label \"%s\"", labelReferences[i].label);
+				snprintf(assembler->errorState, sizeof(assembler->errorState), "Undefined label \"%s\"", labelReferences[i].label);
 				goto failure;
 			}
 
