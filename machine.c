@@ -108,11 +108,15 @@ int ExecuteLMC(lmc_t* machine)
 			if (machine->accumulator != '\n')
 			{
 				int clear = 0;
-				while (clear = getchar() != '\n' && clear != EOF) { }
+				while ((clear = getchar()) != '\n' && clear != EOF) { }
 			}
 			break;
 		case OTC:
 			putchar(machine->accumulator);
+			break;
+
+		case DAT:
+		default:
 			break;
 		}
 
