@@ -6,34 +6,34 @@
 
 int main()
 {
-	printf("NotnHeavy's Little Man's Computer virtual machine.\n");
+	puts("NotnHeavy's Little Man's Computer virtual machine.");
 	lmc_t* machine = CreateLMC();
 	lmcassembler_t* assembler = CreateLMCAssembler(NULL, 0);
-	char path[_MAX_PATH];
+	char path[4096];
 	for (;;)
 	{
 		// Read input.
 		ResetLMC(machine);
-		printf("Input .lmc ASM:\n>>> ");
+		fputs("Input .lmc ASM:\n>>> ", stdout);
 		fgets(path, sizeof(path), stdin);
 		path[strlen(path) - 1] = '\0';
 
 		// Open file.
-		FILE* file;
-		if (fopen_s(&file, path, "rb") != 0)
+		FILE* file = fopen(path, "r");
+		if (file == NULL)
 		{
-			printf("This file does not exist on your computer.\n");
+			puts("This file does not exist on your computer.");
 			continue;
 		}
-		_fseeki64(file, 0, SEEK_END);
-		size_t size = _ftelli64(file);
+		fseek(file, 0, SEEK_END);
+		size_t size = ftell(file);
 		char* contents = (char*)malloc(sizeof(char) * size);
 		if (contents == NULL)
 		{
-			printf("Could not malloc file contents buffer.\n");
+			puts("Could not malloc file contents buffer.");
 			continue;
 		}
-		_fseeki64(file, 0, SEEK_SET);
+		fseek(file, 0, SEEK_SET);
 		fread(contents, size, sizeof(char), file);
 		fclose(file);
 
@@ -48,7 +48,7 @@ int main()
 		LoadIntoLMC(machine, code->assembly, code->length);
 		ExecuteLMC(machine);
 		FreeLMCASsembly(code);
-		printf("\n");
+		putchar('\n');
 	}
 
 	return 0;
